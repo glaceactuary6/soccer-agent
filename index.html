@@ -239,7 +239,7 @@
     addLog('Today = ' + today);
     addLog('Calling Anthropic API…');
     const system = 'You are a soccer data API. Output ONLY a raw JSON array. No markdown, no prose, no code fences. Start with [ and end with ].';
-    const prompt = 'Today is ' + today + '. List 10-15 critical upcoming soccer matches (next 3 weeks) across: Premier League, Championship, La Liga, Bundesliga, Serie A, Ligue 1, UEFA Champions League, UEFA Europa League, FIFA World Cup 2026.\n\nCritical = top-3 title race clashes (tag "title") OR knockout/elimination rounds (tag "knockout").\n\nReturn ONLY a JSON array. Each item: {"id":"str","league":"str","home":"str","away":"str","date":"2026-MM-DDTHH:MM:00","dateLabel":"e.g. Sat Jun 21 3:00 PM ET","venue":"str or null","tags":["title" and/or "knockout"],"reason":"one sentence"}';
+    const prompt = 'Today is ' + today + '. List ALL critical soccer matches in the next 3 weeks across: Premier League, Championship, La Liga, Bundesliga, Serie A, Ligue 1, UEFA Champions League, UEFA Europa League, FIFA World Cup 2026. Critical = top-3 title race (tag "title") OR knockout round (tag "knockout"). Return ONLY a JSON array. Be concise — short venue names, short reasons (under 10 words). Each item: {"id":"str","league":"str","home":"str","away":"str","date":"2026-MM-DDTHH:MM:00","dateLabel":"Mon Jun 22 3PM ET","venue":"str or null","tags":["title"or"knockout"],"reason":"str"}';
     try {
       const data = await callAPI([{ role: 'user', content: prompt }], { system: system });
       const raw = (data.content && data.content.find(function(b) { return b.type === 'text'; }) || {}).text || '';
