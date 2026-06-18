@@ -283,21 +283,24 @@
       + (g.reason ? '<div class="reason">' + g.reason + '</div>' : '')
       + '</div>';
   }
-  async function addToCalendar(game) {
-    const btn = document.getElementById('btn-' + game.id);
-    btn.className = 'btn-cal loading'; btn.textContent = 'Adding…';
-    const endTime = new Date(new Date(game.date).getTime() + 7200000).toISOString();
-    try {
-      const data = await callAPI(
-        [{ role: 'user', content: 'Create a Google Calendar event:\nTitle: ' + game.home + ' vs ' + game.away + ' — ' + game.league + '\nStart: ' + game.date + '\nEnd: ' + endTime + '\nDescription: ' + game.reason + (game.venue ? '\nLocation: ' + game.venue : '') + '\nUse your calendar tool to add this now.' }],
-        { mcp_servers: [{ type: 'url', url: 'https://calendarmcp.googleapis.com/mcp/v1', name: 'google-calendar' }] }
-      );
-      const text = (data.content || []).filter(function(b) { return b.type === 'text'; }).map(function(b) { return b.text; }).join(' ').toLowerCase();
-      const success = text.indexOf('created') > -1 || text.indexOf('added') > -1 || text.indexOf('scheduled') > -1 || (data.content || []).some(function(b) { return b.type === 'mcp_tool_result'; });
-      if (success) {
-        addedGames.add(game.id); btn.className = 'btn-cal added'; btn.textContent = '✓ Added'; updateSuccessBanner();
-      } else { btn.className = 'btn-cal error'; btn.textContent = 'Retry'; }
-    } catch(e) { btn.className = 'btn-cal error'; btn.textContent = 'Retry'; }
+function addToCalendar(game) {
+    var start = game.date.replace(/[-:]/g,'').replace('.000','');
+    var endDate = new Date(new Date(game.date).getTime() + 7200000);
+    var end = endDate.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+    var title = encodeURIComponent(game.home + ' vs ' + game.away + ' — ' + game.league);
+    var details = encodeURIComponent(game.reason || '');
+    var location = encodeURIComponent(game.venue || '');
+    var url = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+      + '&text=' + title
+      + '&dates=' + start + 'Z/' + end
+      + '&details=' + details
+      + '&location=' + location;
+    window.open(url, '_blank');
+    addedGames.add(game.id);
+    var btn = document.getElementById('btn-' + game.id);
+    btn.className = 'btn-cal added';
+    btn.textContent = '✓ Added';
+    updateSuccessBanner();
   }
   function updateSuccessBanner() {
     const banner = document.getElementById('success-banner');
