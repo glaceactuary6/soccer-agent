@@ -199,21 +199,21 @@
       function extractJSON(text) {
     text = text.trim();
     var start = text.indexOf('[');
-    var end = text.lastIndexOf(']');
-    if (start === -1 || end === -1 || end <= start) {
-      addLog('DEBUG: no brackets found');
-      return null;
+    if (start === -1) return null;
+    var slice = text.slice(start);
+    // Try clean parse first
+    var end = slice.lastIndexOf(']');
+    if (end !== -1) {
+      try { return JSON.parse(slice.slice(0, end + 1)); } catch(e) {}
     }
-    var slice = text.slice(start, end + 1);
-    addLog('DEBUG slice length: ' + slice.length);
-    addLog('DEBUG first 80: ' + slice.slice(0, 80));
-    addLog('DEBUG last 80: ' + slice.slice(-80));
-    try {
-      return JSON.parse(slice);
-    } catch(e) {
-      addLog('DEBUG parse error: ' + e.message);
-      return null;
+    // Response was truncated — patch it by finding last complete object
+    var lastComplete = slice.lastIndexOf('},');
+    if (lastComplete === -1) lastComplete = slice.lastIndexOf('}');
+    if (lastComplete !== -1) {
+      var patched = slice.slice(0, lastComplete + 1) + ']';
+      try { return JSON.parse(patched); } catch(e) {}
     }
+    return null;
   }
   async function callAPI(messages, extra) {
     extra = extra || {};
