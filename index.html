@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚽ Critical Match Finder</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f14; --surface: rgba(255,255,255,0.04); --border: rgba(255,255,255,0.09);
+      --text: #f1f5f9; --muted: #64748b; --subtle: #334155;
+      --indigo: #6366f1; --indigo-hover: #4f46e5; --amber: #f59e0b; --red: #ef4444; --green: #22c55e;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+    #gate { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .gate-card { width: 100%; max-width: 420px; }
+    .gate-hero { text-align: center; margin-bottom: 32px; }
+    .gate-hero .ball { font-size: 48px; line-height: 1; margin-bottom: 16px; }
+    .gate-hero h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 8px; }
+    .gate-hero p { color: var(--muted); font-size: 14px; line-height: 1.6; }
+    .gate-form { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .field-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; display: block; }
+    .input-row { display: flex; gap: 8px; }
+    .key-input { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; transition: border-color 0.15s; }
+    .key-input:focus { border-color: var(--indigo); }
+    .key-input::placeholder { color: var(--subtle); }
+    .toggle-btn { padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--muted); font-size: 12px; cursor: pointer; }
+    .btn-primary { background: var(--indigo); color: white; border: none; border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.15s; }
+    .btn-primary:hover { background: var(--indigo-hover); }
+    .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .gate-hint { font-size: 12px; color: var(--subtle); text-align: center; }
+    .gate-hint a { color: var(--muted); }
+    #app { display: none; }
+    header { border-bottom: 1px solid var(--border); padding: 18px 24px; }
+    .header-inner { max-width: 680px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 18px; font-weight: 700; }
+    header p { color: var(--muted); font-size: 13px; margin-top: 2px; }
+    .change-key { font-size: 12px; color: var(--subtle); background: none; border: none; cursor: pointer; }
+    main { max-width: 680px; margin: 0 auto; padding: 32px 24px; }
+    .criteria-row { display: flex; gap: 12px; margin-bottom: 32px; }
+    .criteria-card { flex: 1; border-radius: 14px; padding: 14px 16px; }
+    .criteria-card.title { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); }
+    .criteria-card.knockout { background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); }
+    .criteria-card .label { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .criteria-card.title .label { color: var(--amber); }
+    .criteria-card.knockout .label { color: var(--red); }
+    .criteria-card .desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    #state-idle { text-align: center; padding: 64px 0; }
+    #state-idle p { color: var(--muted); font-size: 15px; margin-bottom: 24px; line-height: 1.6; }
+    .btn-find { background: var(--indigo); color: white; border: none; border-radius: 14px; padding: 14px 36px; font-size: 16px; font-weight: 600; cursor: pointer; }
+    .btn-find:hover { background: var(--indigo-hover); }
+    #state-loading { text-align: center; padding: 48px 0; display: none; }
+    .spinner { width: 32px; height: 32px; border: 2px solid var(--indigo); border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #state-loading p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+    .log-box { background: rgba(0,0,0,0.4); border-radius: 10px; padding: 12px 14px; text-align: left; }
+    .log-line { font-size: 11px; font-family: monospace; color: var(--subtle); line-height: 1.8; }
+    #state-error { display: none; padding: 32px 0; }
+    #state-error .err-title { color: var(--red); font-weight: 600; text-align: center; margin-bottom: 16px; }
+    #state-error .log-box { margin-bottom: 24px; }
+    #state-error .log-line { color: #94a3b8; }
+    #state-error .center { text-align: center; }
+    .btn-retry { background: var(--indigo); color: white; border: none; border-radius: 12px; padding: 11px 28px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    #state-results { display: none; }
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .results-header p { font-size: 14px; color: #94a3b8; }
+    .results-header strong { color: white; }
+    .btn-refresh { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; }
+    .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 12px; }
+    .section-label.title { color: var(--amber); }
+    .section-label.knockout { color: var(--red); }
+    .games-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; }
+    .game-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .league-name { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); font-weight: 500; }
+    .badge-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 99px; font-weight: 500; }
+    .badge.title { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .badge.knockout { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .matchup { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .team { flex: 1; font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .team.home { text-align: right; }
+    .team.away { text-align: left; }
+    .vs { color: var(--subtle); font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .card-bottom { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .date-info .date { font-size: 13px; color: #cbd5e1; }
+    .date-info .venue { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .btn-cal { font-size: 13px; padding: 7px 14px; border-radius: 10px; font-weight: 500; cursor: pointer; border: none; white-space: nowrap; }
+    .btn-cal.default { background: var(--indigo); color: white; }
+    .btn-cal.loading { background: rgba(255,255,255,0.08); color: var(--muted); cursor: wait; }
+    .btn-cal.added { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); cursor: default; }
+    .btn-cal.error { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .reason { font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); padding-top: 10px; line-height: 1.5; }
+    .success-banner { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: 14px; padding: 14px; text-align: center; color: #4ade80; font-size: 14px; font-weight: 500; margin-top: 8px; }
+    @media (max-width: 480px) { header, main { padding-left: 16px; padding-right: 16px; } .criteria-row { flex-direction: column; gap: 8px; } .team { font-size: 14px; } }
+  </style>
+</head>
+<body>
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-hero">
+      <div class="ball">⚽</div>
+      <h1>Critical Match Finder</h1>
+      <p>Enter your Anthropic API key to get started.<br>It stays in memory only and is never stored.</p>
+    </div>
+    <div class="gate-form">
+      <div>
+        <label class="field-label">Anthropic API Key</label>
+        <div class="input-row">
+          <input id="key-input" class="key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" />
+          <button class="toggle-btn" onclick="toggleKeyVis()">Show</button>
+        </div>
+      </div>
+      <button id="gate-btn" class="btn-primary" disabled onclick="submitKey()">Continue</button>
+      <p class="gate-hint">Get your key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys</p>
+    </div>
+  </div>
+</div>
+<div id="app">
+  <header>
+    <div class="header-inner">
+      <div>
+        <h1>⚽ Critical Match Finder</h1>
+        <p>Title races &amp; knockouts · 9 competitions</p>
+      </div>
+      <button class="change-key" onclick="changeKey()">Change key</button>
+    </div>
+  </header>
+  <main>
+    <div class="criteria-row">
+      <div class="criteria-card title"><div class="label">🏆 Title Race</div><div class="desc">Top-of-table clashes, teams within striking distance</div></div>
+      <div class="criteria-card knockout"><div class="label">⚔️ Knockout</div><div class="desc">UCL / UEL / World Cup knockouts, promotion playoffs</div></div>
+    </div>
+    <div id="state-idle">
+      <p>Find the next 3 weeks of critical matches across 9 competitions and add them to Google Calendar.</p>
+      <button class="btn-find" onclick="fetchGames()">Find Critical Games</button>
+    </div>
+    <div id="state-loading">
+      <div class="spinner"></div>
+      <p>Scanning fixtures and standings…</p>
+      <div class="log-box" id="log-box"></div>
+    </div>
+    <div id="state-error">
+      <p class="err-title">Something went wrong</p>
+      <div class="log-box" id="err-log"></div>
+      <div class="center"><button class="btn-retry" onclick="fetchGames()">Try Again</button></div>
+    </div>
+    <div id="state-results">
+      <div class="results-header">
+        <p><strong id="match-count">0</strong> critical matches in the next 3 weeks</p>
+        <button class="btn-refresh" onclick="fetchGames()">Refresh</button>
+      </div>
+      <div id="section-title" style="display:none">
+        <div class="section-label title">🏆 Title Race</div>
+        <div class="games-list" id="title-games"></div>
+      </div>
+      <div id="section-knockout" style="display:none">
+        <div class="section-label knockout">⚔️ Knockout</div>
+        <div class="games-list" id="knockout-games"></div>
+      </div>
+      <div id="success-banner" class="success-banner" style="display:none"></div>
+    </div>
+  </main>
+</div>
+<script>
+  let API_KEY = null, gamesData = [], addedGames = new Set(), logs = [];
+  const keyInput = document.getElementById('key-input');
+  const gateBtn = document.getElementById('gate-btn');
+  keyInput.addEventListener('input', () => { gateBtn.disabled = !keyInput.value.trim().startsWith('sk-'); });
+  keyInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !gateBtn.disabled) submitKey(); });
+  function toggleKeyVis() {
+    const btn = document.querySelector('.toggle-btn');
+    if (keyInput.type === 'password') { keyInput.type = 'text'; btn.textContent = 'Hide'; }
+    else { keyInput.type = 'password'; btn.textContent = 'Show'; }
+  }
+  function submitKey() {
+    API_KEY = keyInput.value.trim();
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }
+  function changeKey() {
+    API_KEY = null; keyInput.value = ''; gateBtn.disabled = true;
+    document.getElementById('gate').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    showState('idle');
+  }
+  function showState(name) {
+    ['idle','loading','error','results'].forEach(s => {
+      document.getElementById('state-' + s).style.display = s === name ? 'block' : 'none';
+    });
+  }
+  function addLog(msg) {
+    const t = new Date().toISOString().split('T')[1].slice(0,8);
+    logs.push(t + ' ' + msg);
+    ['log-box','err-log'].forEach(id => {
+      document.getElementById(id).innerHTML = logs.map(l => '<div class="log-line">' + l + '</div>').join('');
+    });
+  }
+  function extractJSON(text) {
+    try { return JSON.parse(text.trim()); } catch {}
+    const s = text.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    try { return JSON.parse(s); } catch {}
+    const m = s.match(/\[[\s\S]*\]/);
+    if (m) { try { return JSON.parse(m[0]); } catch {} }
+    return null;
+  }
+  async function callAPI(messages, extra) {
+    extra = extra || {};
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'x-api-key': API_KEY,
+      },
+      body: JSON.stringify(Object.assign({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: messages }, extra)),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(function() { return {}; });
+      throw new Error((err && err.error && err.error.message) || ('HTTP ' + res.status));
+    }
+    return res.json();
+  }
+  async function fetchGames() {
+    showState('loading'); logs = []; gamesData = [];
+    const today = new Date().toISOString().split('T')[0];
+    addLog('Today = ' + today);
+    addLog('Calling Anthropic API…');
+    const system = 'You are a soccer data API. Output ONLY a raw JSON array. No markdown, no prose, no code fences. Start with [ and end with ].';
+    const prompt = 'Today is ' + today + '. List 10-15 critical upcoming soccer matches (next 3 weeks) across: Premier League, Championship, La Liga, Bundesliga, Serie A, Ligue 1, UEFA Champions League, UEFA Europa League, FIFA World Cup 2026.\n\nCritical = top-3 title race clashes (tag "title") OR knockout/elimination rounds (tag "knockout").\n\nReturn ONLY a JSON array. Each item: {"id":"str","league":"str","home":"str","away":"str","date":"2026-MM-DDTHH:MM:00","dateLabel":"e.g. Sat Jun 21 3:00 PM ET","venue":"str or null","tags":["title" and/or "knockout"],"reason":"one sentence"}';
+    try {
+      const data = await callAPI([{ role: 'user', content: prompt }], { system: system });
+      const raw = (data.content && data.content.find(function(b) { return b.type === 'text'; }) || {}).text || '';
+      addLog('Response: ' + raw.length + ' chars');
+      addLog('Preview: ' + raw.slice(0, 100));
+      const parsed = extractJSON(raw);
+      if (!parsed || !Array.isArray(parsed)) throw new Error('Response was not a JSON array.');
+      const valid = parsed.filter(function(g) { return g.id && g.league && g.home && g.away && g.date && Array.isArray(g.tags); });
+      addLog('Valid games: ' + valid.length);
+      if (valid.length === 0) throw new Error('No valid games in response.');
+      gamesData = valid; renderGames(); showState('results');
+    } catch(e) { addLog('ERROR: ' + e.message); showState('error'); }
+  }
+  function renderGames() {
+    const titleGames = gamesData.filter(function(g) { return g.tags.indexOf('title') > -1; });
+    const knockoutGames = gamesData.filter(function(g) { return g.tags.indexOf('knockout') > -1 && g.tags.indexOf('title') === -1; });
+    document.getElementById('match-count').textContent = gamesData.length;
+    const secTitle = document.getElementById('section-title');
+    const secKnockout = document.getElementById('section-knockout');
+    if (titleGames.length > 0) {
+      secTitle.style.display = 'block';
+      document.querySelector('#section-title .section-label').textContent = '🏆 Title Race (' + titleGames.length + ')';
+      document.getElementById('title-games').innerHTML = titleGames.map(gameHTML).join('');
+    } else { secTitle.style.display = 'none'; }
+    if (knockoutGames.length > 0) {
+      secKnockout.style.display = 'block';
+      document.querySelector('#section-knockout .section-label').textContent = '⚔️ Knockout (' + knockoutGames.length + ')';
+      document.getElementById('knockout-games').innerHTML = knockoutGames.map(gameHTML).join('');
+    } else { secKnockout.style.display = 'none'; }
+  }
+  function gameHTML(g) {
+    const badgeHTML = g.tags.map(function(t) { return '<span class="badge ' + t + '">' + (t === 'title' ? '🏆 Title Race' : '⚔️ Knockout') + '</span>'; }).join('');
+    const calState = addedGames.has(g.id) ? 'added' : 'default';
+    const calLabel = calState === 'added' ? '✓ Added' : '+ Calendar';
+    const safeG = JSON.stringify(g).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<div class="game-card" id="card-' + g.id + '">'
+      + '<div class="card-top"><span class="league-name">' + g.league + '</span><div class="badge-row">' + badgeHTML + '</div></div>'
+      + '<div class="matchup"><div class="team home">' + g.home + '</div><div class="vs">vs</div><div class="team away">' + g.away + '</div></div>'
+      + '<div class="card-bottom"><div class="date-info"><div class="date">' + g.dateLabel + '</div>' + (g.venue ? '<div class="venue">' + g.venue + '</div>' : '') + '</div>'
+      + '<button class="btn-cal ' + calState + '" id="btn-' + g.id + '" onclick=\'addToCalendar(' + safeG + ')\'>' + calLabel + '</button></div>'
+      + (g.reason ? '<div class="reason">' + g.reason + '</div>' : '')
+      + '</div>';
+  }
+  async function addToCalendar(game) {
+    const btn = document.getElementById('btn-' + game.id);
+    btn.className = 'btn-cal loading'; btn.textContent = 'Adding…';
+    const endTime = new Date(new Date(game.date).getTime() + 7200000).toISOString();
+    try {
+      const data = await callAPI(
+        [{ role: 'user', content: 'Create a Google Calendar event:\nTitle: ' + game.home + ' vs ' + game.away + ' — ' + game.league + '\nStart: ' + game.date + '\nEnd: ' + endTime + '\nDescription: ' + game.reason + (game.venue ? '\nLocation: ' + game.venue : '') + '\nUse your calendar tool to add this now.' }],
+        { mcp_servers: [{ type: 'url', url: 'https://calendarmcp.googleapis.com/mcp/v1', name: 'google-calendar' }] }
+      );
+      const text = (data.content || []).filter(function(b) { return b.type === 'text'; }).map(function(b) { return b.text; }).join(' ').toLowerCase();
+      const success = text.indexOf('created') > -1 || text.indexOf('added') > -1 || text.indexOf('scheduled') > -1 || (data.content || []).some(function(b) { return b.type === 'mcp_tool_result'; });
+      if (success) {
+        addedGames.add(game.id); btn.className = 'btn-cal added'; btn.textContent = '✓ Added'; updateSuccessBanner();
+      } else { btn.className = 'btn-cal error'; btn.textContent = 'Retry'; }
+    } catch(e) { btn.className = 'btn-cal error'; btn.textContent = 'Retry'; }
+  }
+  function updateSuccessBanner() {
+    const banner = document.getElementById('success-banner');
+    banner.style.display = 'block';
+    banner.textContent = '✓ ' + addedGames.size + ' match' + (addedGames.size > 1 ? 'es' : '') + ' added to Google Calendar';
+  }
+</script>
+</body>
+</html>
