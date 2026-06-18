@@ -295,7 +295,13 @@ function addToCalendar(game) {
       + '&dates=' + start + 'Z/' + end
       + '&details=' + details
       + '&location=' + location;
-    window.open(url, '_blank');
+    var a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     addedGames.add(game.id);
     var btn = document.getElementById('btn-' + game.id);
     btn.className = 'btn-cal added';
