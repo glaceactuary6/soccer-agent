@@ -196,17 +196,24 @@
       document.getElementById(id).innerHTML = logs.map(l => '<div class="log-line">' + l + '</div>').join('');
     });
   }
-    function extractJSON(text) {
+      function extractJSON(text) {
     text = text.trim();
-    try { return JSON.parse(text); } catch(e1) {}
-    text = text.replace(/^```json\s*/i,'').replace(/```\s*$/,'').trim();
-    try { return JSON.parse(text); } catch(e2) {}
     var start = text.indexOf('[');
     var end = text.lastIndexOf(']');
-    if (start !== -1 && end !== -1 && end > start) {
-      try { return JSON.parse(text.slice(start, end + 1)); } catch(e3) {}
+    if (start === -1 || end === -1 || end <= start) {
+      addLog('DEBUG: no brackets found');
+      return null;
     }
-    return null;
+    var slice = text.slice(start, end + 1);
+    addLog('DEBUG slice length: ' + slice.length);
+    addLog('DEBUG first 80: ' + slice.slice(0, 80));
+    addLog('DEBUG last 80: ' + slice.slice(-80));
+    try {
+      return JSON.parse(slice);
+    } catch(e) {
+      addLog('DEBUG parse error: ' + e.message);
+      return null;
+    }
   }
   async function callAPI(messages, extra) {
     extra = extra || {};
