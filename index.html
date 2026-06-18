@@ -225,7 +225,7 @@
         'anthropic-dangerous-direct-browser-access': 'true',
         'x-api-key': API_KEY,
       },
-      body: JSON.stringify(Object.assign({ model: 'claude-sonnet-4-6', max_tokens: 2000, messages: messages }, extra)),
+      body: JSON.stringify(Object.assign({ model: 'claude-sonnet-4-6', max_tokens: 4000, messages: messages }, extra)),
     });
     if (!res.ok) {
       const err = await res.json().catch(function() { return {}; });
