@@ -284,9 +284,19 @@
       + '</div>';
   }
 function addToCalendar(game) {
-    var start = game.date.replace(/[-:]/g,'').replace('.000','');
-    var endDate = new Date(new Date(game.date).getTime() + 7200000);
-    var end = endDate.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+    var startDate = new Date(game.date);
+    var endDate = new Date(startDate.getTime() + 7200000);
+    function toGCal(d) {
+      return d.getUTCFullYear()
+        + pad(d.getUTCMonth()+1)
+        + pad(d.getUTCDate())
+        + 'T' + pad(d.getUTCHours())
+        + pad(d.getUTCMinutes())
+        + '00Z';
+    }
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    var start = toGCal(startDate);
+    var end = toGCal(endDate);
     var title = encodeURIComponent(game.home + ' vs ' + game.away + ' — ' + game.league);
     var details = encodeURIComponent(game.reason || '');
     var location = encodeURIComponent(game.venue || '');
